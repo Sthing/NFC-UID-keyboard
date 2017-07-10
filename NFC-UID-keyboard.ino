@@ -8,7 +8,8 @@
  *  - A 3.3V/8MHz Arduino Pro Micro clone
  *  - A RFID-RC522 card reader (Buy at eBay or AliExpress)
  *  - A buzzer
- *  - An LED and a resistor
+ *  - An LED and a 180 ohm resistor
+ *  - A plastic box (I used a 3.34"L x 1.96"W x 0.83"H one: https://www.aliexpress.com/item/J34-Free-Shipping-New-Plastic-Electronics-Project-Box-Enclosure-Case-DIY-3-34-L-x-1/32599725524.html)
  * 
  * Beware: The card reader is NOT 5V tolerant.
  * 
@@ -21,31 +22,22 @@
  * SPI MOSI   16                     MOSI
  * SPI MISO   14                     MISO
  * SPI SCK    15                     SCK
- * LED         5
- * Buzzer      3
+ * LED         6
+ * Buzzer      9
  */
 #include <SPI.h>
 #include <MFRC522.h>
 #include "Keyboard.h"
 
-//#define USE_SERIAL 1
-
-#define BUZZER_PIN 3
-#define LED_PIN 5
-#define SS_PIN 18
+#define BUZZER_PIN 9
+#define LED_PIN 6
+#define SS_PIN A0
 #define RST_PIN 10
 MFRC522 mfrc522(SS_PIN, RST_PIN);	// Create MFRC522 instance.
 MFRC522::Uid lastUid;     // UID of last scanned card
 unsigned long lastMillis; // value of millis() when last card was scanned.
 
 void setup() {
-  #ifdef USE_SERIAL
-	Serial.begin(9600);	// Initialize serial communications with the PC
-  while (!Serial) {
-    ; // wait for serial port to connect. Needed for native USB
-  }
-  Serial.println("Scan PICC to see UID and type...");
-  #endif
   pinMode(BUZZER_PIN, OUTPUT);
   pinMode(LED_PIN, OUTPUT);
   Keyboard.begin();
@@ -56,15 +48,11 @@ void setup() {
 void loop() {
 	// Look for new cards
 	if ( ! mfrc522.PICC_IsNewCardPresent()) {
-    //Serial.print("."); delay(500);
 		return;
 	}
 
 	// Select one of the cards
 	if ( ! mfrc522.PICC_ReadCardSerial()) {
-    #ifdef USE_SERIAL
-    Serial.println("Not selected");
-    #endif
 		return;
 	}
 
@@ -84,20 +72,10 @@ void loop() {
   lastMillis = millis();
   
 	// Output the UID followed by Enter.
-  #ifdef USE_SERIAL
-  Serial.print("Card UID: ");
-  #endif
   for (byte i = 0; i < mfrc522.uid.size; i++) {
-    #ifdef USE_SERIAL
-    Serial.print(mfrc522.uid.uidByte[i] >> 4, HEX);
-    Serial.print(mfrc522.uid.uidByte[i] & 0x0F, HEX);
-    #endif
     Keyboard.print(mfrc522.uid.uidByte[i] >> 4, HEX);
     Keyboard.print(mfrc522.uid.uidByte[i] & 0x0F, HEX);
   } 
-  #ifdef USE_SERIAL
-  Serial.println();
-  #endif
   Keyboard.write(KEY_RETURN);
 
   // Wait a short while before turning off buzzer
